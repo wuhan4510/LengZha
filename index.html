@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>冷轧带钢计算工具集 · 导航</title>
+  <style>
+    /* ---------- 全局重置 & 字体 ---------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1.5rem;
+      color: #0f172a;
+    }
+
+    /* ---------- 主容器 ---------- */
+    .container {
+      max-width: 1300px;
+      width: 100%;
+    }
+
+    /* ---------- 头部 ---------- */
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+      line-height: 1.2;
+    }
+
+    .header .subtitle {
+      font-size: 1.05rem;
+      color: #64748b;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    .header .badge {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1e40af;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 1rem;
+      border-radius: 40px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+
+    /* ---------- 网格布局 ---------- */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 3rem;
+    }
+
+    /* ---------- 工具卡片 ---------- */
+    .tool-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 1.25rem 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.22s ease;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+      cursor: pointer;
+      min-height: 88px;
+    }
+
+    .tool-card:hover {
+      border-color: #3b82f6;
+      background: #fafcff;
+      box-shadow: 0 12px 25px -10px rgba(59, 130, 246, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .tool-card:active {
+      transform: translateY(0) scale(0.995);
+    }
+
+    .tool-icon {
+      font-size: 1.6rem;
+      margin-right: 0.85rem;
+      line-height: 1;
+      flex-shrink: 0;
+      width: 40px;
+      text-align: center;
+    }
+
+    .tool-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .tool-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.01em;
+    }
+
+    .tool-desc {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .tool-arrow {
+      font-size: 1.3rem;
+      color: #cbd5e1;
+      margin-left: 0.75rem;
+      transition: color 0.2s, transform 0.2s;
+      flex-shrink: 0;
+      font-weight: 300;
+    }
+
+    .tool-card:hover .tool-arrow {
+      color: #3b82f6;
+      transform: translateX(4px);
+    }
+
+    /* ---------- 分类标题（可选，用于分组） ---------- */
+    .category-title {
+      grid-column: 1 / -1;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #94a3b8;
+      padding: 0.5rem 0.25rem 0.25rem;
+      margin-top: 0.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      margin-bottom: 0.25rem;
+    }
+
+    /* 第一个分类标题取消顶部额外间距 */
+    .category-title:first-of-type {
+      margin-top: 0;
+    }
+
+    /* ---------- 空占位卡片（保持网格对齐，可选） ---------- */
+    .placeholder-card {
+      background: #f8fafc;
+      border: 1.5px dashed #e2e8f0;
+      border-radius: 18px;
+      min-height: 88px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #cbd5e1;
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+
+    /* ---------- 底部 ---------- */
+    .footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      padding-top: 1.5rem;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer .version {
+      background: #f1f5f9;
+      padding: 0.25rem 0.8rem;
+      border-radius: 30px;
+      font-weight: 500;
+      color: #64748b;
+      font-size: 0.7rem;
+    }
+
+    /* ---------- 响应式微调 ---------- */
+    @media (max-width: 640px) {
+      body { padding: 1.5rem 1rem; }
+      .header h1 { font-size: 1.8rem; }
+      .header .subtitle { font-size: 0.95rem; }
+      .grid { grid-template-columns: 1fr; gap: 1rem; }
+      .tool-card { padding: 1rem 1.2rem; min-height: 78px; }
+      .tool-icon { font-size: 1.4rem; width: 34px; margin-right: 0.7rem; }
+      .tool-name { font-size: 0.98rem; }
+      .footer { flex-direction: column; text-align: center; }
+    }
+
+    @media (min-width: 641px) and (max-width: 900px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* 点缀：轻轻柔和的背景 */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -20%;
+      left: -10%;
+      width: 60%;
+      height: 60%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.03) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -10%;
+      right: -5%;
+      width: 50%;
+      height: 50%;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.02) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: -1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 头部区域 -->
+    <div class="header">
+      <div class="badge">工具集</div>
+      <h1>冷轧带钢计算</h1>
+      <div class="subtitle">
+        张力辊 · 轧制力 · 工艺润滑 · 板形控制 —— 常用计算工具快速入口
+      </div>
+    </div>
+
+    <!-- 工具卡片网格 —— 可容纳50个左右链接 -->
+    <div class="grid" id="toolGrid">
+      <!-- 分类：张力与辊系 -->
+      <div class="category-title">张力与辊系</div>
+
+      <!-- 1. 张力辊张力放大系数计算 (实际链接) -->
+      <a href="张力辊张力放大系数计算.html" class="tool-card" title="计算张力辊张力放大系数、出口张力、传动功率">
+        <div class="tool-icon">📐</div>
+        <div class="tool-info">
+          <div class="tool-name">张力辊张力放大系数</div>
+          <div class="tool-desc">欧拉公式 · 包角 · 摩擦系数</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <!-- 2. 张力辊传动功率计算 (示例占位，可替换为真实链接) -->
+      <a href="#" class="tool-card" title="张力辊传动功率计算" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">⚡</div>
+        <div class="tool-info">
+          <div class="tool-name">张力辊传动功率</div>
+          <div class="tool-desc">张力差 · 速度 · 效率</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <!-- 3. 张力辊压辊压力计算 -->
+      <a href="#" class="tool-card" title="张力辊压辊压力计算" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">🔩</div>
+        <div class="tool-info">
+          <div class="tool-name">压辊压力计算</div>
+          <div class="tool-desc">压紧力 · 摩擦力 · 防打滑</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <!-- 4. 带钢张力与延伸率关系 -->
+      <a href="#" class="tool-card" title="带钢张力与延伸率关系" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">📏</div>
+        <div class="tool-info">
+          <div class="tool-name">张力-延伸率关系</div>
+          <div class="tool-desc">弹性模量 · 屈服强度</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <!-- 5. 卷取机张力计算 -->
+      <a href="#" class="tool-card" title="卷取机张力计算" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">🌀</div>
+        <div class="tool-info">
+          <div class="tool-name">卷取机张力</div>
+          <div class="tool-desc">卷径 · 力矩 · 张力</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <!-- 分类：轧制力与变形 -->
+      <div class="category-title">轧制力与变形</div>
+
+      <a href="#" class="tool-card" title="轧制力计算（Hill公式）" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">📊</div>
+        <div class="tool-info">
+          <div class="tool-name">轧制力计算 (Hill)</div>
+          <div class="tool-desc">变形抗力 · 摩擦 · 张力</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <a href="#" class="tool-card" title="轧制力矩与功率" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">🔧</div>
+        <div class="tool-info">
+          <div class="tool-name">轧制力矩与功率</div>
+          <div class="tool-desc">力臂 · 转速 · 效率</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <a href="#" class="tool-card" title="压下量与轧制力关系" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">📉</div>
+        <div class="tool-info">
+          <div class="tool-name">压下量-轧制力</div>
+          <div class="tool-desc">入口厚度 · 出口厚度</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <a href="#" class="tool-card" title="前滑与后滑计算" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">🔄</div>
+        <div class="tool-info">
+          <div class="tool-name">前滑与后滑</div>
+          <div class="tool-desc">中性角 · 速度比</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <a href="#" class="tool-card" title="轧辊弹性压扁计算" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">⚙️</div>
+        <div class="tool-info">
+          <div class="tool-name">轧辊弹性压扁</div>
+          <div class="tool-desc">压扁半径 · 接触弧长</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <!-- 分类：板形与工艺润滑 -->
+      <div class="category-title">板形与工艺润滑</div>
+
+      <a href="#" class="tool-card" title="板形良好条件计算" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">📐</div>
+        <div class="tool-info">
+          <div class="tool-name">板形良好条件</div>
+          <div class="tool-desc">凸度 · 比例凸度</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <a href="#" class="tool-card" title="轧制润滑液流量计算" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">💧</div>
+        <div class="tool-info">
+          <div class="tool-name">润滑液流量</div>
+          <div class="tool-desc">轧制速度 · 辊缝 · 冷却</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <a href="#" class="tool-card" title="变形区热平衡计算" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">🌡️</div>
+        <div class="tool-info">
+          <div class="tool-name">变形区热平衡</div>
+          <div class="tool-desc">摩擦热 · 变形热 · 温升</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <a href="#" class="tool-card" title="乳化液浓度与皂化值" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">🧪</div>
+        <div class="tool-info">
+          <div class="tool-name">乳化液浓度</div>
+          <div class="tool-desc">皂化值 · 稳定性</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <!-- 分类：电机与传动 -->
+      <div class="category-title">电机与传动</div>
+
+      <a href="#" class="tool-card" title="主传动电机功率校核" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">🔌</div>
+        <div class="tool-info">
+          <div class="tool-name">主电机功率校核</div>
+          <div class="tool-desc">轧制功率 · 加速功率</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <a href="#" class="tool-card" title="减速比与电机转速" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">⚙️</div>
+        <div class="tool-info">
+          <div class="tool-name">减速比与转速</div>
+          <div class="tool-desc">轧辊线速度 · 传动比</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <a href="#" class="tool-card" title="电机过载能力校验" onclick="return false;" style="opacity:0.85;">
+        <div class="tool-icon">📈</div>
+        <div class="tool-info">
+          <div class="tool-name">电机过载校验</div>
+          <div class="tool-desc">堵转 · 加速 · 均方根</div>
+        </div>
+        <div class="tool-arrow">→</div>
+      </a>
+
+      <!-- 更多卡片……可继续添加至50个左右 -->
+
+      <!-- 以下是占位卡片，用于展示网格可容纳数量，实际使用时替换为真实链接或删除 -->
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+      <div class="placeholder-card">+ 更多工具</div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="footer">
+      <span>© 冷轧带钢计算工具集 · 工艺工程师助手</span>
+      <span class="version">v1.0 · 50+ 工具</span>
+    </div>
+  </div>
+</body>
+</html>

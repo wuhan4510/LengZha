@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>张力辊张力放大系数计算程序</title>
+<style>
+  :root {
+    --primary: #1a6fc9;
+    --primary-dark: #1257a3;
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --border: #e0e6ee;
+    --text: #2b3440;
+    --muted: #6b7787;
+    --accent: #e67e22;
+    --ok: #27ae60;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 24px;
+  }
+  .container { max-width: 1180px; margin: 0 auto; }
+  header {
+    background: linear-gradient(135deg, #1257a3, #1a6fc9 60%, #2e86d4);
+    color: #fff;
+    border-radius: 12px;
+    padding: 26px 32px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 14px rgba(18,87,163,.25);
+  }
+  header h1 { font-size: 24px; margin-bottom: 6px; }
+  header p { opacity: .88; font-size: 14px; }
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(43,52,64,.05);
+  }
+  .card h2 {
+    font-size: 17px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--primary-dark);
+  }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .field label b { color: var(--text); font-size: 14px; }
+  .field input[type=number] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: Consolas, monospace;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .field input[type=number]:focus { border-color: var(--primary); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .inline-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 4px; }
+  .kpi {
+    background: linear-gradient(180deg, #f8fafd, #eef3fa);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .kpi .label { font-size: 12px; color: var(--muted); }
+  .kpi .value { font-size: 22px; font-weight: 700; color: var(--primary-dark); font-family: Consolas, monospace; }
+  .kpi .value small { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+  .kpi.highlight { background: linear-gradient(180deg, #fdf6ec, #faecd7); border-color: #f0d9b5; }
+  .kpi.highlight .value { color: #b9770e; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: center; }
+  th { background: #f0f5fb; color: var(--primary-dark); font-weight: 600; }
+  td input[type=number] {
+    width: 76px; padding: 4px 6px; border: 1px solid var(--border);
+    border-radius: 6px; text-align: center; font-family: Consolas, monospace;
+  }
+  tr.total-row td { font-weight: 700; background: #f8fafd; }
+  .formula {
+    background: #f8fafd;
+    border: 1px dashed #c7d4e4;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 14px;
+    margin-top: 16px;
+    color: var(--text);
+  }
+  .formula .eq {
+    font-family: "Cambria Math", Consolas, serif;
+    font-size: 17px;
+    color: var(--primary-dark);
+    display: block;
+    margin: 6px 0;
+  }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .warn {
+    background: #fdf2f0; border: 1px solid #f5c6bf; color: #a93226;
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-top: 14px; display: none;
+  }
+  .chart-wrap { margin-top: 8px; }
+  svg text { font-family: "Microsoft YaHei", sans-serif; }
+  footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>张力辊张力放大系数计算程序</h1>
+    <p>基于欧拉公式 T<sub>out</sub> = T<sub>in</sub> · e<sup>μ·α</sup>，适用于连续机组张力辊组（bridle rolls）张力递增计算</p>
+  </header>
+
+  <div class="layout">
+    <!-- 左侧：输入 -->
+    <div>
+      <div class="card">
+        <h2>输入参数</h2>
+        <div class="field">
+          <label><b>入口张力 T₁</b>（初始张力）</label>
+          <input type="number" id="t1" value="10" min="0" step="0.1">
+          <div class="hint">单位：kN</div>
+        </div>
+        <div class="inline-fields">
+          <div class="field">
+            <label><b>辊数 n</b></label>
+            <input type="number" id="n" value="4" min="1" max="12" step="1">
+          </div>
+          <div class="field">
+            <label><b>摩擦系数 μ</b></label>
+            <input type="number" id="mu" value="0.15" min="0.01" max="1" step="0.01">
+          </div>
+        </div>
+        <div class="hint" style="margin-bottom:14px;">参考值：钢带/钢辊(干) 0.10~0.20，表面涂层或粗糙辊 0.20~0.30，湿态约 0.05~0.10</div>
+        <div class="inline-fields">
+          <div class="field">
+            <label><b>带材速度 v</b></label>
+            <input type="number" id="v" value="120" min="0" step="1">
+            <div class="hint">单位：m/min</div>
+          </div>
+          <div class="field">
+            <label><b>辊径 D</b></label>
+            <input type="number" id="d" value="600" min="1" step="10">
+            <div class="hint">单位：mm（用于扭矩计算）</div>
+          </div>
+        </div>
+        <div class="inline-fields">
+          <div class="field">
+            <label><b>默认包角 α</b></label>
+            <input type="number" id="alphaDefault" value="180" min="1" max="360" step="1">
+            <div class="hint">单位：°，常见 90°~270°</div>
+          </div>
+          <div class="field">
+            <label><b>安全系数 K</b></label>
+            <input type="number" id="safety" value="1.0" min="0.5" max="2" step="0.05">
+            <div class="hint">打滑安全储备（有效μ=μ/K）</div>
+          </div>
+        </div>
+        <button id="rebuild" style="width:100%;padding:9px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;margin-top:6px;">按默认包角重置各辊</button>
+        <div id="warn" class="warn"></div>
+      </div>
+
+      <div class="card">
+        <h2>计算公式</h2>
+        <div class="formula">
+          单辊放大系数：
+          <span class="eq">λ = e<sup>μ·α</sup>　（α 为弧度）</span>
+          总放大系数：
+          <span class="eq">λ<sub>总</sub> = e<sup>μ·(α₁+α₂+…+αₙ)</sup></span>
+          逐级张力：
+          <span class="eq">T<sub>i+1</sub> = T<sub>i</sub> · e<sup>μ·αᵢ</sup></span>
+          驱动功率：
+          <span class="eq">P = (T<sub>出</sub> − T<sub>入</sub>) · v</span>
+        </div>
+        <div class="note">欧拉公式给出的是临界打滑状态下的最大张力比，实际设计应留有安全余量（安全系数 K）。</div>
+      </div>
+    </div>
+
+    <!-- 右侧：结果 -->
+    <div>
+      <div class="card">
+        <h2>计算结果</h2>
+        <div class="kpis">
+          <div class="kpi highlight">
+            <div class="label">总放大系数 λ</div>
+            <div class="value"><span id="kTotal">-</span></div>
+          </div>
+          <div class="kpi">
+            <div class="label">出口张力 T<sub>n+1</sub></div>
+            <div class="value"><span id="tOut">-</span><small>kN</small></div>
+          </div>
+          <div class="kpi">
+            <div class="label">总张力增量 ΔT</div>
+            <div class="value"><span id="dTotal">-</span><small>kN</small></div>
+          </div>
+          <div class="kpi">
+            <div class="label">总驱动功率 P</div>
+            <div class="value"><span id="pTotal">-</span><small>kW</small></div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <svg id="chart" width="100%" height="230" viewBox="0 0 700 230"></svg>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>逐辊明细（包角可单独修改）</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>辊号</th>
+              <th>包角 αᵢ (°)</th>
+              <th>入侧张力 Tᵢ (kN)</th>
+              <th>单辊放大系数 λᵢ</th>
+              <th>出侧张力 Tᵢ₊₁ (kN)</th>
+              <th>张力增量 ΔTᵢ (kN)</th>
+              <th>扭矩 Mᵢ (kN·m)</th>
+              <th>功率 Pᵢ (kW)</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td>合计</td>
+              <td id="sumAlpha">-</td>
+              <td id="sumIn">-</td>
+              <td id="sumLambda">-</td>
+              <td id="sumOut">-</td>
+              <td id="sumD">-</td>
+              <td id="sumM">-</td>
+              <td id="sumP">-</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div class="note">扭矩 M = ΔT · D/2；功率按带材速度计算，未含传动效率（电机选型时建议除以 η≈0.9）。</div>
+      </div>
+    </div>
+  </div>
+  <footer>张力辊张力放大系数计算程序 · 欧拉模型 · 结果仅供方案设计参考，关键设备请按标准校核</footer>
+</div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const fmt = (x, d) => isFinite(x) ? Number(x).toFixed(d) : "-";
+  const rad = deg => deg * Math.PI / 180;
+
+  // 各辊包角状态
+  let alphas = [];
+
+  function readInputs() {
+    return {
+      t1: Math.max(0, parseFloat($("t1").value) || 0),
+      n: Math.min(12, Math.max(1, parseInt($("n").value) || 1)),
+      mu: Math.max(0.001, parseFloat($("mu").value) || 0.15),
+      v: Math.max(0, parseFloat($("v").value) || 0),
+      d: Math.max(1, parseFloat($("d").value) || 1),
+      safety: Math.max(0.5, parseFloat($("safety").value) || 1)
+    };
+  }
+
+  function syncAlphas(n) {
+    const def = parseFloat($("alphaDefault").value) || 180;
+    while (alphas.length < n) alphas.push(def);
+    alphas.length = n;
+  }
+
+  function buildTable() {
+    const p = readInputs();
+    syncAlphas(p.n);
+    const tb = $("tbody");
+    tb.innerHTML = "";
+    for (let i = 0; i < p.n; i++) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + (i + 1) + "#</td>" +
+        '<td><input type="number" data-i="' + i + '" class="alpha" min="1" max="360" step="1" value="' + alphas[i] + '"></td>' +
+        "<td class=\"tin\"></td><td class=\"lam\"></td><td class=\"tout\"></td><td class=\"dt\"></td><td class=\"mq\"></td><td class=\"pw\"></td>";
+      tb.appendChild(tr);
+    }
+    tb.querySelectorAll(".alpha").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const i = +inp.dataset.i;
+        let v = Math.min(360, Math.max(1, parseFloat(inp.value) || 180));
+        alphas[i] = v;
+        calculate();
+      });
+    });
+    calculate();
+  }
+
+  function drawChart(rows, tMax) {
+    const svg = $("chart");
+    const W = 700, H = 230;
+    const padL = 60, padR = 20, padT = 26, padB = 40;
+    const labels = ["入口"].concat(rows.map((_, i) => (i + 1) + "#辊出"));
+    const vals = [rows.length ? rows[0].tin : 0].concat(rows.map(r => r.tout));
+    const n = vals.length;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const top = Math.max(tMax * 1.15, 1);
+    const barW = Math.min(64, plotW / n * 0.55);
+    let s = '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fafcfe" rx="8"/>';
+    // 网格
+    for (let g = 0; g <= 4; g++) {
+      const y = padT + plotH * g / 4;
+      s += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="#e2e9f2" stroke-width="1"/>';
+      s += '<text x="' + (padL - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#6b7787">' + (top * (1 - g / 4)).toFixed(1) + '</text>';
+    }
+    vals.forEach((v, i) => {
+      const cx = padL + plotW * (i + 0.5) / n;
+      const h = plotH * v / top;
+      const y = padT + plotH - h;
+      const grad = i === 0 ? "#8fb8e0" : "#1a6fc9";
+      s += '<rect x="' + (cx - barW / 2) + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="3" fill="' + grad + '"/>';
+      s += '<text x="' + cx + '" y="' + (y - 5) + '" text-anchor="middle" font-size="12" font-weight="bold" fill="#1257a3">' + v.toFixed(2) + '</text>';
+      s += '<text x="' + cx + '" y="' + (H - 14) + '" text-anchor="middle" font-size="11" fill="#6b7787">' + labels[i] + '</text>';
+    });
+    s += '<text x="' + (padL + plotW / 2) + '" y="' + (padT - 8) + '" text-anchor="middle" font-size="12" fill="#6b7787">各辊出侧张力 (kN)</text>';
+    svg.innerHTML = s;
+  }
+
+  function calculate() {
+    const p = readInputs();
+    syncAlphas(p.n);
+    const muEff = p.mu / p.safety;
+    let t = p.t1;
+    let sumAlpha = 0, sumD = 0, sumP = 0, sumM = 0;
+    let sumLn = 0;
+    const rows = [];
+
+    document.querySelectorAll("#tbody tr").forEach((tr, i) => {
+      if (i >= p.n) return;
+      const a = alphas[i];
+      const lam = Math.exp(muEff * rad(a));
+      const tin = t;
+      const tout = tin * lam;
+      const dt = tout - tin;
+      const m = dt * (p.d / 2) / 1000;      // kN * m -> kN·m
+      const pw = dt * p.v / 60;             // kN * m/s = kW
+      t = tout;
+      sumAlpha += a; sumD += dt; sumP += pw; sumM += m; sumLn += muEff * rad(a);
+      rows.push({ tin, tout, dt, lam });
+      tr.querySelector(".tin").textContent = fmt(tin, 2);
+      tr.querySelector(".lam").textContent = fmt(lam, 4);
+      tr.querySelector(".tout").textContent = fmt(tout, 2);
+      tr.querySelector(".dt").textContent = fmt(dt, 2);
+      tr.querySelector(".mq").textContent = fmt(m, 3);
+      tr.querySelector(".pw").textContent = fmt(pw, 2);
+    });
+
+    const lamTotal = Math.exp(sumLn);
+    $("kTotal").textContent = fmt(lamTotal, 3);
+    $("tOut").textContent = fmt(t, 2);
+    $("dTotal").textContent = fmt(sumD, 2);
+    $("pTotal").textContent = fmt(sumP, 2);
+    $("sumAlpha").textContent = fmt(sumAlpha, 0) + "°";
+    $("sumIn").textContent = "—";
+    $("sumLambda").textContent = fmt(lamTotal, 3);
+    $("sumOut").textContent = fmt(t, 2);
+    $("sumD").textContent = fmt(sumD, 2);
+    $("sumM").textContent = fmt(sumM, 3);
+    $("sumP").textContent = fmt(sumP, 2);
+
+    // 打滑预警：任一辊有效μ小于所需μ时提示（此处按无冗余设计校验入口条件）
+    const w = $("warn");
+    if (p.safety < 1) {
+      w.style.display = "block";
+      w.textContent = "注意：安全系数 K < 1 表示放大能力被高估，存在打滑风险，建议 K ≥ 1.0。";
+    } else if (p.mu > 0.3) {
+      w.style.display = "block";
+      w.textContent = "注意：摩擦系数 μ > 0.3 偏高，请确认辊面材质与工况。";
+    } else {
+      w.style.display = "none";
+    }
+
+    drawChart(rows, Math.max(t, p.t1, 1));
+  }
+
+  ["t1", "n", "mu", "v", "d", "safety"].forEach(id => {
+    $(id).addEventListener("input", () => {
+      const p = readInputs();
+      // 辊数变化时重建表格
+      const cur = document.querySelectorAll("#tbody tr").length;
+      if (cur !== p.n) buildTable(); else calculate();
+    });
+  });
+  $("rebuild").addEventListener("click", buildTable);
+
+  buildTable();
+})();
+</script>
+</body>
+</html>
